@@ -1,0 +1,45 @@
+name: Download and Push Model to Repo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Hugging Face CLI
+        run: pip install -U "huggingface_hub[cli]"
+
+      - name: Download Model
+        run: hf download sentence-transformers/clip-ViT-B-32-multilingual-v1 --local-dir ./clip-multilingual --exclude "onnx/*" "openvino/*" "*.h5" "pytorch_model.bin"
+
+      - name: Install RAR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rar
+
+      - name: Compress and Split Model using RAR
+        run: |
+          mkdir -p model_zips
+          rar a -v90m model_zips/model.rar ./clip-multilingual
+          rm -rf clip-multilingual
+
+      - name: Commit and Push to Repo
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add model_zips/
+          git commit -m "Add split model files (90MB RAR parts)" || echo "No changes to commit"
+          git push
