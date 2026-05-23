@@ -1,0 +1,29 @@
+name: Clean Entire Repository
+
+on:
+  workflow_dispatch:  # فقط با کلیک دستی اجرا می‌شود
+
+permissions:
+  contents: write
+
+jobs:
+  wipe-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Delete all files except .git
+        run: |
+          # حذف تمام فایل‌ها و پوشه‌ها به جز .git
+          find . -mindepth 1 -not -path './.git' -not -path './.git/*' -delete
+
+          # ثبت حذف‌ها در stage
+          git add -A
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Wipe repository - remove all files" || echo "Nothing to commit"
+          git push
